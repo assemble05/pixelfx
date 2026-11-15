@@ -8,6 +8,7 @@
 //
 // Options: --from S --to S (strip range) --step S (default 1/12) --cols N --zoom N --bg KIND --out FILE --no-target --seconds S
 
+import { certifyEffect } from "./lib/manifest.mjs";
 import { join } from "node:path";
 import { ROOT, resolveIds, loadEffect, renderAct, spriteSheet, canvas, upscale, save, writeVideo } from "./lib/fxlib.mjs";
 
@@ -26,6 +27,7 @@ for (const id of ids) {
     s.json.meta.pixelfx.pivot = r.pivot;
     save(`${base}.sheet.png`, s.png);
     save(`${base}.sheet.json`, JSON.stringify(s.json, null, 1));
+    if (!certifyEffect(id, [`${base}.sheet.png`, `${base}.sheet.json`], flags).ok) process.exitCode = 1;
     console.log(`${id}  ${r.n} frames of ${r.w} x ${r.h}  ->  ${base}.sheet.png`);
     continue;
   }
@@ -34,7 +36,7 @@ for (const id of ids) {
   if (flags.mp4) {
     const k = +(flags.zoom ?? Math.max(2, Math.min(8, Math.floor(960 / Math.max(r.w, r.h)))));
     const file = flags.out ?? base + ".mp4";
-    writeVideo(file, r, k);
+    if (writeVideo(file, r, k) && !certifyEffect(id, [file], flags).ok) process.exitCode = 1;
     console.log(`${id}  ${r.frames.length} frames  ${(r.frames.length / r.fps).toFixed(2)} s  ->  ${file}`);
   } else {
     const from = +(flags.from ?? r.frames[0].t), to = +(flags.to ?? r.frames[r.frames.length - 1].t), step = +(flags.step ?? 1 / 12), list = [];
@@ -53,6 +55,7 @@ for (const id of ids) {
     });
     const file = flags.out ?? base + ".png";
     save(file, img.png());
+    if (!certifyEffect(id, [file], flags).ok) process.exitCode = 1;
     console.log(`${id}  ${list.length} steps  ->  ${file}`);
   }
 }
