@@ -1,5 +1,6 @@
 // Shared by the tools: find effects, render their frames, lay frames out, write PNG, GIF and MP4.
 
+import { certifyPreview } from "./manifest.mjs";
 import { readdirSync, existsSync, statSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -258,11 +259,13 @@ export function writeVideo(file, r, k, { loops = 1 } = {}) {
   const res = spawnSync("ffmpeg", args, { input: Buffer.concat(parts), maxBuffer: 1 << 30 });
   if (res.error) return false;
   if (res.status !== 0) throw new Error(`ffmpeg failed: ${res.stderr}`);
+  certifyPreview([file]);
   return true;
 }
 
 export function save(file, buf) {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, typeof buf === "string" ? buf : buf);
+  certifyPreview([file]);
   return file;
 }

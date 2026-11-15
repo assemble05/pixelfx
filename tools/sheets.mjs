@@ -4,6 +4,7 @@
 //   node tools/sheets.mjs            everything
 //   node tools/sheets.mjs fire ice   some categories
 
+import { certifyEffect } from "./lib/manifest.mjs";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT, allIds, resolveIds, loadEffect, renderFrames, spriteSheet, save } from "./lib/fxlib.mjs";
@@ -16,9 +17,13 @@ for (const id of ids) {
   const s = spriteSheet(fx, r, name);
   save(join(out, id + ".png"), s.png);
   save(join(out, id + ".json"), JSON.stringify(s.json, null, 1));
+  if (!certifyEffect(id, [join(out, id + ".png"), join(out, id + ".json")]).ok) process.exitCode = 1;
   const m = fx.meta;
   index.push({ id, name: m.name, desc: m.desc, tags: m.tags, loop: m.loop, fps: r.fps, frames: r.n, frameSize: m.size, pivot: m.origin, columns: s.json.meta.pixelfx.columns, image: `${id}.png`, ...(fx.mod.act ? { act: actTiming(fx.mod) } : {}) });
   process.stdout.write(".");
 }
-if (process.argv.length <= 2) writeFileSync(join(out, "index.json"), JSON.stringify(index, null, 1));
+if (process.argv.length <= 2) {
+  writeFileSync(join(out, "index.json"), JSON.stringify(index, null, 1));
+  if (!certifyEffect(ids, [join(out, "index.json")]).ok) process.exitCode = 1;
+}
 console.log(`\n${ids.length} sheets -> sheets/`);

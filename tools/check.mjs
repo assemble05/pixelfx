@@ -10,7 +10,18 @@ import { shortfall } from "../src/core/rig.js";
 import { resolveIds, allIds, loadEffect } from "./lib/fxlib.mjs";
 import { createFrame, clearFrame, painterFor, createFx, createAct, poseAt, stockActor, resolveOptions, Painter, BACKDROPS } from "../src/core/index.js";
 
-const ids = process.argv.slice(2).length ? resolveIds(process.argv.slice(2)) : allIds();
+const args = process.argv.slice(2), patterns = [], config = {};
+for (let i = 0; i < args.length; i++) {
+  if (["--opts", "--fps", "--seed"].includes(args[i])) config[args[i].slice(2)] = args[++i];
+  else if (args[i].startsWith("--")) throw new Error(`unknown check option ${args[i]}`);
+  else patterns.push(args[i]);
+}
+const custom = config.opts ? JSON.parse(config.opts) : {};
+if (custom === null || typeof custom !== "object" || Array.isArray(custom)) throw new Error("--opts must be an object");
+if (config.fps !== undefined && !(Number.isFinite(+config.fps) && +config.fps > 0 && +config.fps <= 240)) throw new Error("--fps must be in 0..240");
+if (config.seed !== undefined && !Number.isFinite(+config.seed)) throw new Error("--seed must be finite");
+const ids = patterns.length ? resolveIds(patterns) : allIds();
+if (!ids.length) throw new Error("no effects to check");
 const M = 24; // margin around the canvas, to catch pixels drawn outside it
 let fails = 0, warns = 0;
 
@@ -78,6 +89,7 @@ for (const id of ids) {
   const errs = [], notes = [];
   try {
     const fx = await loadEffect(id), { meta, mod } = fx;
+    if (config.fps !== undefined) meta.fps = +config.fps;
     const src = readFileSync(fx.file, "utf8");
     // meta
     if (typeof meta.name !== "string" || !meta.name) errs.push("meta.name missing");
@@ -99,7 +111,7 @@ for (const id of ids) {
       const x = (i % fw) - M, y = Math.floor(i / fw) - M;
       return x >= 0 && y >= 0 && x < W && y < H;
     };
-    const opts = { ...(meta.options ?? {}), seed: meta.options?.seed ?? 1 };
+    const opts = { ...(meta.options ?? {}), seed: config.seed !== undefined ? +config.seed : meta.options?.seed ?? 1, ...custom };
     if (meta.actor) opts.actor = stockActor(meta.actor === 2 ? 2 : 1);
     const n = Math.max(2, Math.round(meta.duration * meta.fps));
     let maxPx = 0, spill = 0, spillLight = 0, ms = [], bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;

@@ -13,6 +13,7 @@
 //
 // This shows the effect by itself, with the character standing by. tools/act.mjs shows it acted out.
 
+import { certifyEffect } from "./lib/manifest.mjs";
 import { join } from "node:path";
 import { ROOT, resolveIds, loadEffect, renderFrames, contactSheet, spriteSheet, writeVideo, save } from "./lib/fxlib.mjs";
 
@@ -50,6 +51,8 @@ for (const id of resolveIds(ids)) {
       const name = id.split("/")[1], s = spriteSheet(fx, r, name);
       made.push(save(join(dir, `${name}.png`), s.png), save(join(dir, `${name}.json`), JSON.stringify(s.json, null, 1)));
     }
+    const proof = certifyEffect(id, made, flags);
+    if (!proof.ok) failed++;
     console.log(`${id}  ${r.n} frames  ->  ${made.join("  ")}`);
   } catch (e) {
     failed++;
